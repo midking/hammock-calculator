@@ -277,7 +277,10 @@
     color: var(--text3);
     margin-top: 2px;
   }
-  .result-card.highlight .rc-value { color: var(--blue); }
+  .result-card.highlight .rc-value    { color: var(--blue); }
+  .result-card.color-amber .rc-value  { color: var(--amber); }
+  .result-card.color-coral .rc-value  { color: var(--coral); }
+  .result-card.color-teal  .rc-value  { color: var(--teal); }
 
   /* ── Status ── */
   .status-bar {
@@ -357,6 +360,13 @@
         </div>
         <input type="range" id="hLen" min="200" max="400" step="5" value="220">
       </div>
+      <div class="slider-row">
+        <div class="slider-label">
+          <span>신체 사이즈 (키)</span>
+          <span class="slider-value" id="hPersonV">174 cm</span>
+        </div>
+        <input type="range" id="hPerson" min="150" max="190" step="1" value="174">
+      </div>
     </div>
   </div>
 
@@ -429,6 +439,26 @@
   <!-- Results -->
   <div class="results">
     <div class="result-card highlight">
+      <div class="rc-label">해먹 길이</div>
+      <div class="rc-value" id="cH">–</div>
+      <div class="rc-sub">H</div>
+    </div>
+    <div class="result-card color-amber">
+      <div class="rc-label">머리 연장선</div>
+      <div class="rc-value" id="cEL">–</div>
+      <div class="rc-sub">EL</div>
+    </div>
+    <div class="result-card color-amber">
+      <div class="rc-label">다리 연장선</div>
+      <div class="rc-value" id="cER">–</div>
+      <div class="rc-sub">ER</div>
+    </div>
+    <div class="result-card color-coral">
+      <div class="rc-label">릿지라인 길이</div>
+      <div class="rc-value" id="cR">–</div>
+      <div class="rc-sub">릿지라인</div>
+    </div>
+    <div class="result-card highlight">
       <div class="rc-label">머리쪽 각도</div>
       <div class="rc-value" id="cAngL">–</div>
       <div class="rc-sub">수평 기준</div>
@@ -438,15 +468,15 @@
       <div class="rc-value" id="cAngR">–</div>
       <div class="rc-sub">수평 기준</div>
     </div>
-    <div class="result-card">
+    <div class="result-card color-coral">
       <div class="rc-label">기울기 각도</div>
       <div class="rc-value" id="cTilt">–</div>
       <div class="rc-sub">다리가 높을수록</div>
     </div>
-    <div class="result-card">
-      <div class="rc-label">무게중심 위치</div>
+    <div class="result-card color-teal">
+      <div class="rc-label">릿지라인과 얼굴 거리</div>
       <div class="rc-value" id="cCOM">–</div>
-      <div class="rc-sub">머리 앵커에서</div>
+      <div class="rc-sub">머리 위치 기준</div>
     </div>
   </div>
 
@@ -543,10 +573,14 @@ function run(){
   const aLegDeg =Math.round(angleLegRad *180/Math.PI*10)/10;
   const comCm   =Math.round(comDistOnChord);
 
+  document.getElementById('cH').textContent  =H +' cm';
+  document.getElementById('cEL').textContent =EL+' cm';
+  document.getElementById('cER').textContent =ER+' cm';
+  document.getElementById('cR').textContent  =R +' cm';
   document.getElementById('cAngL').textContent=aHeadDeg+'°';
   document.getElementById('cAngR').textContent=aLegDeg+'°';
   document.getElementById('cTilt').textContent=tiltDeg+'°';
-  document.getElementById('cCOM').textContent=comCm+' cm';
+
 
   const avg=(aHeadDeg+aLegDeg)/2;
   let cls,msg;
@@ -555,14 +589,24 @@ function run(){
   else{cls='status-warn';msg=`⚠ 평균 ${avg.toFixed(1)}° — 처짐이 큽니다. 릿지라인을 늘리거나 연장선을 짧게 해보세요.`;}
   st.className='status-bar '+cls; st.textContent=msg;
 
+  const HPERSON=+document.getElementById('hPerson').value;
+  const tOL_p=EL/total, tOR_p=(EL+H)/total;
+  let tHead;
+  if(HPERSON>0 && HPERSON<H){
+    const headOffset=Math.max(0,(H-HPERSON)/2);
+    tHead=tOL_p+headOffset/total;
+  } else {
+    tHead=tOL_p+(tOR_p-tOL_p)/5;
+  }
+
   draw(aHeadDeg,aLegDeg,tiltDeg,thetaChordRad,
        total,H,EL,ER,R,LH,R_head_ratio,R_leg_ratio,comRatio,tiltRad,
-       thetaHeadChord,thetaLegChord);
+       thetaHeadChord,thetaLegChord,tHead);
 }
 
 function draw(aHeadDeg,aLegDeg,tiltDeg,thetaChord,
               total,H,EL,ER,R,LH,rhr,rlr,comRatio,tiltRad,
-              thetaHeadChord,thetaLegChord){
+              thetaHeadChord,thetaLegChord,tHead){
   const svg=document.getElementById('diag');
   svg.innerHTML='';
 
@@ -618,9 +662,10 @@ function draw(aHeadDeg,aLegDeg,tiltDeg,thetaChord,
   const allY=[];
   for(let i=0;i<=80;i++) allY.push(curveY(i/80));
   allY.push(Ay,By);
-  const topY=Math.min(...allY, By-mTop);
+  allY.push(ptCOM.y+11+14+6);
+  const topY=Math.min(Ay,By)-78;
   const botY=Math.max(...allY);
-  const vbTop=Math.min(topY-mTop,0);
+  const vbTop=topY;
   const vbH=botY-vbTop+mBot+lgH;
   svg.setAttribute('viewBox',`0 ${vbTop} ${vbW} ${vbH}`);
 
@@ -633,6 +678,20 @@ function draw(aHeadDeg,aLegDeg,tiltDeg,thetaChord,
   // 연장선
   mk('polyline',{points:segPts(0,tOL,16),stroke:AMBER,'stroke-width':'4.5',fill:'none','stroke-linecap':'round'});
   mk('polyline',{points:segPts(tOR,1,16),stroke:AMBER,'stroke-width':'4.5',fill:'none','stroke-linecap':'round'});
+
+  // 해먹 상단 라인 (임시 — 릿지라인↔해먹 상단 높이 측정용)
+  mk('line',{x1:ptOL.x,y1:ptOL.y,x2:ptOR.x,y2:ptOR.y,stroke:BLUE,'stroke-width':'1.5','stroke-dasharray':'6 4',opacity:'0.6'});
+
+  // 릿지라인↔해먹 상단 높이 (머리 위치)
+  const ptHead=pt(tHead);
+  const ridgeYatHead=Ay+(By-Ay)*(ptHead.x-Ax)/(Bx-Ax);
+  const topLineYatHead=ptOL.y+(ptOR.y-ptOL.y)*(ptHead.x-ptOL.x)/(ptOR.x-ptOL.x);
+  const ridgeHcm=Math.round((topLineYatHead-ridgeYatHead)/pxPerCm);
+  document.getElementById('cCOM').textContent=ridgeHcm+' cm';
+  mk('line',{x1:ptHead.x,y1:ridgeYatHead,x2:ptHead.x,y2:topLineYatHead,stroke:TEAL,'stroke-width':'1.5','stroke-dasharray':'3 3',opacity:'0.9'});
+  mk('line',{x1:ptHead.x-6,y1:ridgeYatHead,x2:ptHead.x+6,y2:ridgeYatHead,stroke:TEAL,'stroke-width':'1.5'});
+  mk('line',{x1:ptHead.x-6,y1:topLineYatHead,x2:ptHead.x+6,y2:topLineYatHead,stroke:TEAL,'stroke-width':'1.5'});
+  tx(ridgeHcm+'cm',{x:ptHead.x+10,y:(ridgeYatHead+topLineYatHead)/2+4,'font-size':'13',fill:TEAL,'font-weight':'700','text-anchor':'start'});
 
   // 해먹 곡선
   mk('polyline',{points:segPts(tOL,tOR,80),stroke:BLUE,'stroke-width':'6.5',fill:'none','stroke-linecap':'round','stroke-linejoin':'round'});
@@ -683,7 +742,7 @@ function draw(aHeadDeg,aLegDeg,tiltDeg,thetaChord,
   // 무게중심
   const d=11;
   mk('polygon',{points:`${ptCOM.x},${ptCOM.y-d} ${ptCOM.x+d},${ptCOM.y} ${ptCOM.x},${ptCOM.y+d} ${ptCOM.x-d},${ptCOM.y}`,fill:PURPLE,opacity:'0.9'});
-  tx('무게중심',{x:ptCOM.x+15,y:ptCOM.y+4,'font-size':'12',fill:PURPLE,'font-weight':'600'});
+  tx('무게중심',{x:ptCOM.x,y:ptCOM.y+d+14,'font-size':'12',fill:PURPLE,'font-weight':'600','text-anchor':'middle'});
 
 
   // 오링
@@ -744,6 +803,10 @@ function draw(aHeadDeg,aLegDeg,tiltDeg,thetaChord,
 
 document.getElementById('rLen').addEventListener('input',run);
 ['hLen','eL','eR','legH'].forEach(id=>document.getElementById(id).addEventListener('input',run));
+document.getElementById('hPerson').addEventListener('input',function(){
+  document.getElementById('hPersonV').textContent=this.value+' cm';
+  run();
+});
 run();
 </script>
 </body>
