@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="ko"> 
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#1a1a1a">
+<title>해먹 각도 계산기</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f3ef;
+    --surface: #ffffff;
+    --surface2: #ede9e3;
+    --border: rgba(0,0,0,0.10);
+    --border2: rgba(0,0,0,0.18);
+    --text: #1a1814;
+    --text2: #6b6560;
+    --text3: #9e9890;
+    --accent: #2e6b4f;
+    --accent-light: #e6f2ec;
+    --accent-text: #1a4a32;
+    --warn: #8a5a00;
+    --warn-bg: #fff7e0;
+    --danger: #8a2020;
+    --danger-bg: #fdf0f0;
+    --blue: #1c5fa8;
+    --blue-light: #e8f1fb;
+    --amber: #a06010;
+    --coral: #b83a1a;
+    --purple: #5b48b8;
+    --teal: #1a7a5a;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+    --radius: 14px;
+    --radius-sm: 8px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141210;
+      --surface: #1e1c19;
+      --surface2: #2a2824;
+      --border: rgba(255,255,255,0.08);
+      --border2: rgba(255,255,255,0.15);
+      --text: #f0ede8;
+      --text2: #a09890;
+      --text3: #6a6258;
+      --accent: #3d8f68;
+      --accent-light: #162a20;
+      --accent-text: #7dcca0;
+      --warn: #c49020;
+      --warn-bg: #2a2010;
+      --danger: #c04040;
+      --danger-bg: #2a1010;
+      --blue: #4a90d8;
+      --blue-light: #0e1e30;
+      --amber: #c08020;
+      --coral: #c85030;
+      --purple: #8878d8;
+      --teal: #40a878;
+      --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
+    }
+  }
+
+  html, body {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Layout ── */
+  .app {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 0 0 60px;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 24px 18px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  header h1 .icon {
+    font-size: 22px;
+  }
+  header p {
+    font-size: 13px;
+    color: var(--text2);
+    margin-top: 2px;
+  }
+
+  /* ── Section ── */
+  .section {
+    margin: 20px 16px 0;
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .section-header {
+    padding: 14px 18px 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-header .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-green  { background: var(--teal); }
+  .dot-amber  { background: var(--amber); }
+  .dot-coral  { background: var(--coral); }
+  .dot-purple { background: var(--purple); }
+  .section-header h2 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .section-body {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* ── Slider Row ── */
+  .slider-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .slider-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .slider-label span:first-child {
+    font-size: 14px;
+    color: var(--text2);
+    font-weight: 500;
+  }
+  .slider-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.3px;
+    font-variant-numeric: tabular-nums;
+  }
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 36px;
+    background: transparent;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  input[type=range]::-webkit-slider-runnable-track {
+    height: 5px;
+    border-radius: 3px;
+    background: var(--surface2);
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-top: -10.5px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+    border: 3px solid var(--surface);
+  }
+  input[type=range]::-moz-range-track {
+    height: 5px;
+    border-radius: 3px;
+    background: var(--surface2);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid var(--surface);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+  }
+
+  /* Ridge special */
+  .ridge-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: -4px;
+  }
+  .badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.02em;
+  }
+  .badge-auto   { background: var(--accent-light); color: var(--accent-text); }
+  .badge-manual { background: var(--warn-bg); color: var(--warn); }
+  .reset-btn {
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    font-family: var(--font);
+    transition: background 0.15s;
+  }
+  .reset-btn:active { background: var(--surface2); }
+  .rec-hint {
+    font-size: 12px;
+    color: var(--text3);
+    margin-left: auto;
+  }
+
+  /* ── Results Grid ── */
+  .results {
+    margin: 20px 16px 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  @media (min-width: 500px) {
+    .results { grid-template-columns: repeat(4, 1fr); }
+  }
+  .result-card {
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+  }
+  .result-card .rc-label {
+    font-size: 11px;
+    color: var(--text3);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .result-card .rc-value {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .result-card .rc-sub {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+  .result-card.highlight .rc-value { color: var(--blue); }
+
+  /* ── Status ── */
+  .status-bar {
+    margin: 12px 16px 0;
+    padding: 13px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+  .status-good   { background: var(--accent-light); color: var(--accent-text); }
+  .status-warn   { background: var(--warn-bg); color: var(--warn); }
+  .status-danger { background: var(--danger-bg); color: var(--danger); }
+
+  /* ── Diagram ── */
+  .diagram-wrap {
+    margin: 20px 16px 0;
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    padding: 8px 0 4px;
+  }
+  .diagram-wrap svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /* ── Info banner ── */
+  .info-banner {
+    margin: 20px 16px 0;
+    background: var(--blue-light);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--blue);
+    line-height: 1.6;
+  }
+  .info-banner strong { font-weight: 700; }
+
+  /* ── Two-col slider grid ── */
+  .slider-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 20px;
+  }
+  @media (max-width: 420px) {
+    .slider-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <h1><span class="icon">🏕</span> 해먹 각도 계산기</h1>
+    <p>Plagenhoef 인체 무게 비율 · 비대칭 처짐 반영</p>
+  </header>
+
+  <div class="info-banner">
+    <strong>무게 중심 상체 68% · 하체 32% 적용</strong> <br>
+    - 지렛대 원리: 무게중심에서 먼 쪽 앵커가 더 큰 힘(장력)을 받음 <br>
+    - 해먹·연장선 조절 시 릿지라인이 자동으로 권장값(전체의 83%)으로 맞춰집니다.
+  </div>
+
+  <!-- 해먹 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="dot dot-green"></span>
+      <h2>해먹</h2>
+    </div>
+    <div class="section-body">
+      <div class="slider-row">
+        <div class="slider-label">
+          <span>해먹 길이</span>
+          <span class="slider-value" id="hLenV">220 cm</span>
+        </div>
+        <input type="range" id="hLen" min="200" max="400" step="5" value="220">
+      </div>
+    </div>
+  </div>
+
+  <!-- 연장선 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="dot dot-amber"></span>
+      <h2>연장선</h2>
+    </div>
+    <div class="section-body">
+      <div class="slider-grid">
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>머리쪽</span>
+            <span class="slider-value" id="eLV">20 cm</span>
+          </div>
+          <input type="range" id="eL" min="0" max="80" step="1" value="20">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>다리쪽</span>
+            <span class="slider-value" id="eRV">20 cm</span>
+          </div>
+          <input type="range" id="eR" min="0" max="80" step="1" value="20">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 릿지라인 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="dot dot-coral"></span>
+      <h2>릿지라인</h2>
+    </div>
+    <div class="section-body">
+      <div class="slider-row">
+        <div class="slider-label">
+          <span>릿지라인 길이</span>
+          <span class="slider-value" id="rLenV">282 cm</span>
+        </div>
+        <input type="range" id="rLen" min="150" max="420" step="5" value="282">
+        <div class="ridge-meta">
+          <span class="badge badge-auto" id="ridgeBadge">자동 (83%)</span>
+          <button class="reset-btn" id="resetRidge">권장값으로 초기화</button>
+          <span class="rec-hint">권장: <strong id="rec83">282 cm</strong></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 다리쪽 높이 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="dot dot-purple"></span>
+      <h2>다리쪽 앵커 높이</h2>
+    </div>
+    <div class="section-body">
+      <div class="slider-row">
+        <div class="slider-label">
+          <span>다리쪽 나무 걸이 높이 올림</span>
+          <span class="slider-value" id="legHV">0 cm</span>
+        </div>
+        <input type="range" id="legH" min="0" max="80" step="1" value="0">
+        <div style="font-size:12px;color:var(--text3);" id="legHint">기준 높이 (머리쪽과 동일)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="results">
+    <div class="result-card highlight">
+      <div class="rc-label">머리쪽 각도</div>
+      <div class="rc-value" id="cAngL">–</div>
+      <div class="rc-sub">수평 기준</div>
+    </div>
+    <div class="result-card highlight">
+      <div class="rc-label">다리쪽 각도</div>
+      <div class="rc-value" id="cAngR">–</div>
+      <div class="rc-sub">수평 기준</div>
+    </div>
+    <div class="result-card">
+      <div class="rc-label">기울기 각도</div>
+      <div class="rc-value" id="cTilt">–</div>
+      <div class="rc-sub">다리가 높을수록</div>
+    </div>
+    <div class="result-card">
+      <div class="rc-label">무게중심 위치</div>
+      <div class="rc-value" id="cCOM">–</div>
+      <div class="rc-sub">머리 앵커에서</div>
+    </div>
+  </div>
+
+  <div class="status-bar status-good" id="statusBox">계산 중...</div>
+
+  <!-- Diagram -->
+  <div class="diagram-wrap">
+    <svg id="diag" width="100%"></svg>
+  </div>
+
+</div>
+
+<script>
+const NS='http://www.w3.org/2000/svg';
+function mk(tag,a,p){const e=document.createElementNS(NS,tag);for(const[k,v]of Object.entries(a))e.setAttribute(k,v);(p||document.getElementById('diag')).appendChild(e);return e;}
+function tx(s,a,p){const t=document.createElementNS(NS,'text');for(const[k,v]of Object.entries(a))t.setAttribute(k,v);t.textContent=s;(p||document.getElementById('diag')).appendChild(t);return t;}
+
+const UPPER_WEIGHT=0.675;
+const COM_POS=0.44;
+let ridgeManual=false;
+
+function isDark(){return matchMedia('(prefers-color-scheme:dark)').matches;}
+
+document.getElementById('rLen').addEventListener('mousedown',()=>{ridgeManual=true;updateBadge();});
+document.getElementById('rLen').addEventListener('touchstart',()=>{ridgeManual=true;updateBadge();},{passive:true});
+document.getElementById('resetRidge').addEventListener('click',()=>{ridgeManual=false;applyAutoRidge();updateBadge();run();});
+
+function updateBadge(){
+  const b=document.getElementById('ridgeBadge');
+  if(ridgeManual){b.className='badge badge-manual';b.textContent='수동 조절 중';}
+  else{b.className='badge badge-auto';b.textContent='자동 (83%)';}
+}
+
+function applyAutoRidge(){
+  const H=+document.getElementById('hLen').value;
+  const EL=+document.getElementById('eL').value;
+  const ER=+document.getElementById('eR').value;
+  const total=H+EL+ER;
+  const rec=Math.round(total*0.83);
+  const s=document.getElementById('rLen');
+  s.max=Math.min(420,total-5);
+  s.value=Math.min(rec,total-5);
+  document.getElementById('rLenV').textContent=s.value+' cm';
+}
+
+function run(){
+  const H  =+document.getElementById('hLen').value;
+  const EL =+document.getElementById('eL').value;
+  const ER =+document.getElementById('eR').value;
+  const LH =+document.getElementById('legH').value;
+  if(!ridgeManual) applyAutoRidge();
+  const R=+document.getElementById('rLen').value;
+  const total=H+EL+ER;
+  const rec=Math.round(total*0.83);
+
+  document.getElementById('hLenV').textContent=H+' cm';
+  document.getElementById('eLV').textContent=EL+' cm';
+  document.getElementById('eRV').textContent=ER+' cm';
+  document.getElementById('rLenV').textContent=R+' cm';
+  document.getElementById('legHV').textContent=LH+' cm';
+  document.getElementById('rec83').textContent=rec+' cm';
+  document.getElementById('legHint').textContent=LH===0?'기준 높이 (머리쪽과 동일)':`다리쪽 앵커 +${LH}cm → 해먹 기울어짐`;
+
+  const st=document.getElementById('statusBox');
+  const chordLen=R;
+
+  if(chordLen>=total){
+    ['cAngL','cAngR','cTilt','cCOM'].forEach(id=>document.getElementById(id).textContent='–');
+    st.className='status-bar status-danger';
+    st.textContent='앵커 간 거리가 전체 줄 길이보다 길거나 같습니다. 값을 조정해주세요.';
+    draw(null,null,null,null,total,H,EL,ER,R,LH,0,0,0,0);
+    return;
+  }
+
+  const tiltRad=Math.atan2(LH,R);
+  const tiltDeg=Math.round(tiltRad*180/Math.PI*10)/10;
+  const thetaChordRad=Math.acos(chordLen/total);
+  const comDistOnChord=EL+H*COM_POS;
+  const comRatio=comDistOnChord/total;
+  // 1단계: 정적 sagCm (comRatio 기반)
+  const thetaHead0=thetaChordRad*(comRatio/0.5);
+  const thetaLeg0 =thetaChordRad*((1-comRatio)/0.5);
+  const sagCmRun=R*Math.tan(thetaHead0)*Math.tan(thetaLeg0)/(Math.tan(thetaHead0)+Math.tan(thetaLeg0));
+  // 2단계: 기울기 반영 유효 comRatio
+  const effComRatio=Math.max(0.05,Math.min(0.95,comRatio-sagCmRun*Math.sin(tiltRad)/R));
+  // 3단계: 장력·각도 재계산
+  const R_leg_ratio=effComRatio;
+  const R_head_ratio=1-effComRatio;
+  const thetaHeadChord=thetaChordRad*(R_leg_ratio/0.5);
+  const thetaLegChord =thetaChordRad*(R_head_ratio/0.5);
+  const angleHeadRad=Math.atan2(sagCmRun,R*effComRatio);
+  const angleLegRad =Math.atan2(sagCmRun,R*(1-effComRatio));
+  const aHeadDeg=Math.round(angleHeadRad*180/Math.PI*10)/10;
+  const aLegDeg =Math.round(angleLegRad *180/Math.PI*10)/10;
+  const comCm   =Math.round(comDistOnChord);
+
+  document.getElementById('cAngL').textContent=aHeadDeg+'°';
+  document.getElementById('cAngR').textContent=aLegDeg+'°';
+  document.getElementById('cTilt').textContent=tiltDeg+'°';
+  document.getElementById('cCOM').textContent=comCm+' cm';
+
+  const avg=(aHeadDeg+aLegDeg)/2;
+  let cls,msg;
+  if(avg<20){cls='status-warn';msg=`⚠ 평균 ${avg.toFixed(1)}° — 너무 팽팽합니다. 릿지라인을 짧게 하거나 연장선을 늘려보세요.`;}
+  else if(avg<=35){cls='status-good';msg=`✓ 머리쪽 ${aHeadDeg}° · 다리쪽 ${aLegDeg}° · 기울기 ${tiltDeg}° — 이상적인 설치입니다!`;}
+  else{cls='status-warn';msg=`⚠ 평균 ${avg.toFixed(1)}° — 처짐이 큽니다. 릿지라인을 늘리거나 연장선을 짧게 해보세요.`;}
+  st.className='status-bar '+cls; st.textContent=msg;
+
+  draw(aHeadDeg,aLegDeg,tiltDeg,thetaChordRad,
+       total,H,EL,ER,R,LH,R_head_ratio,R_leg_ratio,comRatio,tiltRad,
+       thetaHeadChord,thetaLegChord);
+}
+
+function draw(aHeadDeg,aLegDeg,tiltDeg,thetaChord,
+              total,H,EL,ER,R,LH,rhr,rlr,comRatio,tiltRad,
+              thetaHeadChord,thetaLegChord){
+  const svg=document.getElementById('diag');
+  svg.innerHTML='';
+
+  const dark=isDark();
+  const tc=dark?'#f0ede8':'#1a1814';
+  const mc=dark?'#a09890':'#6b6560';
+  const lc=dark?'#3a3830':'#ccc8c0';
+  const BLUE =dark?'#4a90d8':'#1c5fa8';
+  const TEAL =dark?'#40a878':'#1a7a5a';
+  const CORAL=dark?'#c85030':'#b83a1a';
+  const AMBER=dark?'#c08020':'#a06010';
+  const PURPLE=dark?'#8878d8':'#5b48b8';
+  const SURFBG=dark?'#1e1c19':'#ffffff';
+
+  if(aHeadDeg===null){
+    svg.setAttribute('viewBox','0 0 600 200');
+    tx('유효하지 않은 값',{x:'300',y:'100','text-anchor':'middle','font-size':'15',fill:mc});
+    return;
+  }
+
+  const mL=72, mR=80, mTop=110, mBot=80, lgH=44;
+  const vbW=680;
+  const drawW=vbW-mL-mR;
+  const hDist=Math.sqrt(Math.max(R*R-LH*LH,0));
+  const pxPerCm=drawW/Math.max(hDist,120);
+
+  const Ax=mL, Ay=mTop;
+  const Bx=mL+hDist*pxPerCm, By=mTop-LH*pxPerCm;
+
+  const tanH=Math.tan(thetaHeadChord||0.01);
+  const tanL=Math.tan(thetaLegChord||0.01);
+  const sagCm=R*tanH*tanL/(tanH+tanL);
+  const maxSagPx=Math.min(sagCm*pxPerCm*1.05,180);
+  const bottomT=rlr||0.5;
+
+  function curveY(t){
+    const lineY=Ay+(By-Ay)*t;
+    const denom=bottomT*(1-bottomT);
+    return lineY+(denom>0?maxSagPx*t*(1-t)/denom:0);
+  }
+  function curveX(t){return Ax+(Bx-Ax)*t;}
+  function pt(t){return{x:curveX(t),y:curveY(t)};}
+  function segPts(t0,t1,n=20){
+    const a=[];
+    for(let i=0;i<=n;i++){const t=t0+(t1-t0)*(i/n);a.push(`${curveX(t).toFixed(1)},${curveY(t).toFixed(1)}`);}
+    return a.join(' ');
+  }
+
+  const tOL=EL/total, tOR=(EL+H)/total, tCOM=comRatio;
+  const ptOL=pt(tOL), ptOR=pt(tOR), ptCOM=pt(tCOM), ptBot=pt(bottomT);
+
+  // viewBox 동적 계산
+  const allY=[];
+  for(let i=0;i<=80;i++) allY.push(curveY(i/80));
+  allY.push(Ay,By);
+  const topY=Math.min(...allY, By-mTop);
+  const botY=Math.max(...allY);
+  const vbTop=Math.min(topY-mTop,0);
+  const vbH=botY-vbTop+mBot+lgH;
+  svg.setAttribute('viewBox',`0 ${vbTop} ${vbW} ${vbH}`);
+
+  // 수평 기준선
+  mk('line',{x1:Ax-16,y1:Ay,x2:Bx+52,y2:Ay,stroke:lc,'stroke-width':'1.5','stroke-dasharray':'6 5'});
+
+  // 릿지라인
+  mk('line',{x1:Ax,y1:Ay,x2:Bx,y2:By,stroke:CORAL,'stroke-width':'2.5','stroke-dasharray':'11 5'});
+
+  // 연장선
+  mk('polyline',{points:segPts(0,tOL,16),stroke:AMBER,'stroke-width':'4.5',fill:'none','stroke-linecap':'round'});
+  mk('polyline',{points:segPts(tOR,1,16),stroke:AMBER,'stroke-width':'4.5',fill:'none','stroke-linecap':'round'});
+
+  // 해먹 곡선
+  mk('polyline',{points:segPts(tOL,tOR,80),stroke:BLUE,'stroke-width':'6.5',fill:'none','stroke-linecap':'round','stroke-linejoin':'round'});
+
+  // 최저점 점선
+  mk('line',{x1:ptBot.x,y1:Ay+(By-Ay)*(ptBot.x-Ax)/(Bx-Ax),x2:ptBot.x,y2:ptBot.y,stroke:lc,'stroke-width':'1.5','stroke-dasharray':'4 4'});
+
+  // 기울기 각도
+  if(LH>0){
+    const ar=44;
+    mk('path',{d:`M ${Ax+ar} ${Ay} A ${ar} ${ar} 0 0 0 ${Ax+ar*Math.cos(-tiltRad)} ${Ay+ar*Math.sin(-tiltRad)}`,stroke:CORAL,'stroke-width':'2',fill:'none','stroke-dasharray':'3 2'});
+  }
+
+  // 머리쪽 각도 (릿지라인 ↔ 각도선)
+  {
+    const ar=52;
+    const ridgeAngle=Math.atan2(By-Ay,Bx-Ax);
+    const comAngle=Math.atan2(ptCOM.y-Ay,ptCOM.x-Ax);
+    let d=comAngle-ridgeAngle;
+    if(d>Math.PI)d-=2*Math.PI; if(d<-Math.PI)d+=2*Math.PI;
+    const sweep=d>0?1:0;
+    const sx=Ax+ar*Math.cos(ridgeAngle),sy=Ay+ar*Math.sin(ridgeAngle);
+    const ex=Ax+ar*Math.cos(comAngle),ey=Ay+ar*Math.sin(comAngle);
+    mk('path',{d:`M ${sx} ${sy} A ${ar} ${ar} 0 0 ${sweep} ${ex} ${ey}`,stroke:BLUE,'stroke-width':'2.5',fill:'none'});
+    const mid=ridgeAngle+d/2;
+    tx(aHeadDeg+'°',{x:Ax+(ar+18)*Math.cos(mid),y:Ay+(ar+18)*Math.sin(mid)+4,'font-size':'18',fill:BLUE,'font-weight':'700','text-anchor':'start'});
+  }
+
+  // 다리쪽 각도 (릿지라인 ↔ 각도선)
+  {
+    const ar=52;
+    const ridgeAngle=Math.atan2(Ay-By,Ax-Bx);
+    const comAngle=Math.atan2(ptCOM.y-By,ptCOM.x-Bx);
+    let d=comAngle-ridgeAngle;
+    if(d>Math.PI)d-=2*Math.PI; if(d<-Math.PI)d+=2*Math.PI;
+    const sweep=d>0?1:0;
+    const sx=Bx+ar*Math.cos(ridgeAngle),sy=By+ar*Math.sin(ridgeAngle);
+    const ex=Bx+ar*Math.cos(comAngle),ey=By+ar*Math.sin(comAngle);
+    mk('path',{d:`M ${sx} ${sy} A ${ar} ${ar} 0 0 ${sweep} ${ex} ${ey}`,stroke:BLUE,'stroke-width':'2.5',fill:'none'});
+    const mid=ridgeAngle+d/2;
+    tx(aLegDeg+'°',{x:Bx+(ar+18)*Math.cos(mid),y:By+(ar+18)*Math.sin(mid)+4,'font-size':'18',fill:BLUE,'font-weight':'700','text-anchor':'end'});
+  }
+
+  // 앵커 → CoM 점선
+  mk('line',{x1:Ax,y1:Ay,x2:ptCOM.x,y2:ptCOM.y,stroke:PURPLE,'stroke-width':'1.5','stroke-dasharray':'6 4',opacity:'0.7'});
+  mk('line',{x1:Bx,y1:By,x2:ptCOM.x,y2:ptCOM.y,stroke:PURPLE,'stroke-width':'1.5','stroke-dasharray':'6 4',opacity:'0.7'});
+
+  // 무게중심
+  const d=11;
+  mk('polygon',{points:`${ptCOM.x},${ptCOM.y-d} ${ptCOM.x+d},${ptCOM.y} ${ptCOM.x},${ptCOM.y+d} ${ptCOM.x-d},${ptCOM.y}`,fill:PURPLE,opacity:'0.9'});
+  tx('무게중심',{x:ptCOM.x+15,y:ptCOM.y+4,'font-size':'12',fill:PURPLE,'font-weight':'600'});
+
+
+  // 오링
+  mk('circle',{cx:ptOL.x,cy:ptOL.y,r:9,fill:AMBER,stroke:SURFBG,'stroke-width':'2.5'});
+  mk('circle',{cx:ptOR.x,cy:ptOR.y,r:9,fill:AMBER,stroke:SURFBG,'stroke-width':'2.5'});
+
+  // 앵커
+  mk('circle',{cx:Ax,cy:Ay,r:16,fill:TEAL});
+  tx('🌲',{x:Ax-8,y:Ay+6,'font-size':'14'});
+  mk('circle',{cx:Bx,cy:By,r:16,fill:TEAL});
+  tx('🌲',{x:Bx-8,y:By+6,'font-size':'14'});
+  tx('머리',{x:Ax,y:Ay-58,'text-anchor':'middle','font-size':'13',fill:mc});
+  tx('다리',{x:Bx,y:By-58,'text-anchor':'middle','font-size':'13',fill:mc});
+
+  // 연장선 레이블
+  if(EL>0){const m=pt(tOL/2);tx(`연장 ${EL}cm`,{x:m.x-8,y:m.y+4,'text-anchor':'end','font-size':'12',fill:AMBER,'font-weight':'600'});}
+  if(ER>0){const m=pt((tOR+1)/2);tx(`연장 ${ER}cm`,{x:m.x+8,y:m.y+4,'text-anchor':'start','font-size':'12',fill:AMBER,'font-weight':'600'});}
+
+  // 다리 높이 화살표
+  if(LH>0){
+    const ax2=Bx+30;
+    mk('line',{x1:Bx+8,y1:Ay,x2:Bx+52,y2:Ay,stroke:PURPLE,'stroke-width':'1.5','stroke-dasharray':'4 3'});
+    mk('line',{x1:ax2,y1:Ay,x2:ax2,y2:By+2,stroke:PURPLE,'stroke-width':'2.5'});
+    mk('polygon',{points:`${ax2},${By} ${ax2-5},${By+10} ${ax2+5},${By+10}`,fill:PURPLE});
+    tx(`+${LH}cm`,{x:ax2+12,y:(Ay+By)/2+5,'font-size':'13',fill:PURPLE,'font-weight':'600'});
+  }
+
+  // 치수선
+  const dimY=Math.max(...allY)+20;
+  mk('line',{x1:Ax,y1:dimY,x2:Bx,y2:dimY,stroke:lc,'stroke-width':'1.5'});
+  mk('line',{x1:Ax,y1:dimY-8,x2:Ax,y2:dimY+8,stroke:lc,'stroke-width':'1.5'});
+  mk('line',{x1:Bx,y1:dimY-8,x2:Bx,y2:dimY+8,stroke:lc,'stroke-width':'1.5'});
+  tx(`수평 트리 간격  ${Math.round(hDist)} cm`,{x:(Ax+Bx)/2,y:dimY+18,'text-anchor':'middle','font-size':'13',fill:mc});
+
+  // 범례
+  const lgY=dimY+42;
+  [{k:'line',s:BLUE,w:'5.5',d:'',label:'해먹',x:20},
+   {k:'line',s:AMBER,w:'3.5',d:'',label:'연장선',x:94},
+   {k:'line',s:CORAL,w:'2',d:'9 4',label:'릿지라인',x:182},
+   {k:'diamond',f:PURPLE,label:'무게중심',x:294},
+   //{k:'dot',f:AMBER,label:'오링',x:390},
+   //{k:'dot',f:TEAL,label:'앵커',x:442},
+   {k:'dot',f:TEAL,label:'앵커',x:390},
+  ].forEach(item=>{
+    if(item.k==='line'){
+      const a={x1:item.x,y1:lgY,x2:item.x+26,y2:lgY,stroke:item.s,'stroke-width':item.w};
+      if(item.d)a['stroke-dasharray']=item.d;
+      mk('line',a); tx(item.label,{x:item.x+32,y:lgY+4,'font-size':'12',fill:tc});
+    } else if(item.k==='diamond'){
+      mk('polygon',{points:`${item.x+7},${lgY-7} ${item.x+14},${lgY} ${item.x+7},${lgY+7} ${item.x},${lgY}`,fill:item.f});
+      tx(item.label,{x:item.x+20,y:lgY+4,'font-size':'12',fill:tc});
+    } else {
+      mk('circle',{cx:item.x+6,cy:lgY,r:6,fill:item.f});
+      tx(item.label,{x:item.x+17,y:lgY+4,'font-size':'12',fill:tc});
+    }
+  });
+}
+
+document.getElementById('rLen').addEventListener('input',run);
+['hLen','eL','eR','legH'].forEach(id=>document.getElementById(id).addEventListener('input',run));
+run();
+</script>
+</body>
+</html>
