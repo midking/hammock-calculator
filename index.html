@@ -591,8 +591,8 @@ function run(){
 
   const avg=(aHeadDeg+aLegDeg)/2;
   let cls,msg;
-  if(avg<20){cls='status-warn';msg=`⚠ 평균 ${avg.toFixed(1)}° — 너무 팽팽합니다. 릿지라인을 짧게 하거나 연장선을 늘려보세요.`;}
-  else if(avg<=35){cls='status-good';msg=`✓ 머리쪽 ${aHeadDeg}° · 다리쪽 ${aLegDeg}° · 기울기 ${tiltDeg}° — 이상적인 설치입니다!`;}
+  if(avg<28){cls='status-warn';msg=`⚠ 평균 ${avg.toFixed(1)}° — 너무 팽팽합니다. 릿지라인을 짧게 하거나 연장선을 늘려보세요.`;}
+  else if(avg<=36){cls='status-good';msg=`✓ 머리쪽 ${aHeadDeg}° · 다리쪽 ${aLegDeg}° · 기울기 ${tiltDeg}° — 이상적인 설치입니다!`;}
   else{cls='status-warn';msg=`⚠ 평균 ${avg.toFixed(1)}° — 처짐이 큽니다. 릿지라인을 늘리거나 연장선을 짧게 해보세요.`;}
   st.className='status-bar '+cls; st.textContent=msg;
 
