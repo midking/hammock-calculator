@@ -221,24 +221,29 @@
     border-radius: 20px;
     letter-spacing: 0.02em;
   }
-  .badge-auto   { background: var(--accent-light); color: var(--accent-text); }
   .badge-manual { background: var(--warn-bg); color: var(--warn); }
-  .reset-btn {
-    font-size: 12px;
-    padding: 4px 12px;
-    border-radius: 20px;
-    border: 1px solid var(--border2);
-    background: transparent;
-    color: var(--text2);
-    cursor: pointer;
-    font-family: var(--font);
-    transition: background 0.15s;
-  }
-  .reset-btn:active { background: var(--surface2); }
   .rec-hint {
     font-size: 12px;
     color: var(--text3);
     margin-left: auto;
+  }
+  .preset-btn {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 13px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border2);
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    font-family: var(--font);
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+  .preset-btn.preset-active {
+    background: var(--accent-light);
+    color: var(--accent-text);
+    border-color: transparent;
   }
 
   /* ── Results Grid ── */
@@ -337,13 +342,13 @@
 <div class="app">
 
   <header>
-    <h1><span class="icon">🏕</span> 해먹 각도 계산기</h1>
-    <p>Plagenhoef 인체 무게 비율 · 비대칭 처짐 반영</p>
+    <h1><span class="icon">🏕</span> 해먹 각도 계산기 (제작 - 뭬야)</h1>
   </header>
 
   <div class="info-banner">
-    <strong>무게 중심 상체 68% · 하체 32% 적용</strong> <br>
-    - 해먹·연장선 조절 시 릿지라인이 자동으로 권장값(전체의 83%)으로 맞춰집니다.
+    <strong>- 무게 중심 골반 위치 55% 이나 단순 수치를 위해 50% 적용</strong> <br>
+    - 해먹·연장선 조절 시 릿지라인이 자동으로 맞춰집니다. (수동 조절 가능)<br>
+    - 권장 각도 (83% - 33.9도), 기준 각도 (86.6% - 30도) 제공
   </div>
 
   <!-- 해먹 -->
@@ -359,13 +364,6 @@
           <span class="slider-value" id="hLenV">220 cm</span>
         </div>
         <input type="range" id="hLen" min="200" max="400" step="5" value="220">
-      </div>
-      <div class="slider-row">
-        <div class="slider-label">
-          <span>신체 사이즈 (키)</span>
-          <span class="slider-value" id="hPersonV">174 cm</span>
-        </div>
-        <input type="range" id="hPerson" min="150" max="190" step="1" value="174">
       </div>
     </div>
   </div>
@@ -408,10 +406,11 @@
           <span>릿지라인 길이</span>
           <span class="slider-value" id="rLenV">282 cm</span>
         </div>
-        <input type="range" id="rLen" min="150" max="420" step="5" value="282">
+        <input type="range" id="rLen" min="150" max="420" step="1" value="282">
         <div class="ridge-meta">
-          <span class="badge badge-auto" id="ridgeBadge">자동 (83%)</span>
-          <button class="reset-btn" id="resetRidge">권장값으로 초기화</button>
+          <button class="preset-btn preset-active" id="presetRec" aria-pressed="true">권장각도 (83% · 33.9°)</button>
+          <button class="preset-btn" id="presetBase" aria-pressed="false">기준각도 (86.6% · 30°)</button>
+          <span class="badge badge-manual" id="ridgeBadge" style="display:none">수동 조절 중</span>
           <span class="rec-hint">권장: <strong id="rec83">282 cm</strong></span>
         </div>
       </div>
@@ -494,20 +493,25 @@ const NS='http://www.w3.org/2000/svg';
 function mk(tag,a,p){const e=document.createElementNS(NS,tag);for(const[k,v]of Object.entries(a))e.setAttribute(k,v);(p||document.getElementById('diag')).appendChild(e);return e;}
 function tx(s,a,p){const t=document.createElementNS(NS,'text');for(const[k,v]of Object.entries(a))t.setAttribute(k,v);t.textContent=s;(p||document.getElementById('diag')).appendChild(t);return t;}
 
-const UPPER_WEIGHT=0.675;
-const COM_POS=0.44;
-let ridgeManual=false;
+const COM_POS=0.50;
+let ridgeMode='rec';  // 'rec' | 'base' | 'manual'
 
 function isDark(){return matchMedia('(prefers-color-scheme:dark)').matches;}
 
-document.getElementById('rLen').addEventListener('mousedown',()=>{ridgeManual=true;updateBadge();});
-document.getElementById('rLen').addEventListener('touchstart',()=>{ridgeManual=true;updateBadge();},{passive:true});
-document.getElementById('resetRidge').addEventListener('click',()=>{ridgeManual=false;applyAutoRidge();updateBadge();run();});
+document.getElementById('rLen').addEventListener('mousedown',()=>{ridgeMode='manual';updatePreset();});
+document.getElementById('rLen').addEventListener('touchstart',()=>{ridgeMode='manual';updatePreset();},{passive:true});
+document.getElementById('presetRec').addEventListener('click',()=>{ridgeMode='rec';applyAutoRidge();updatePreset();run();});
+document.getElementById('presetBase').addEventListener('click',()=>{ridgeMode='base';applyAutoRidge();updatePreset();run();});
 
-function updateBadge(){
-  const b=document.getElementById('ridgeBadge');
-  if(ridgeManual){b.className='badge badge-manual';b.textContent='수동 조절 중';}
-  else{b.className='badge badge-auto';b.textContent='자동 (83%)';}
+function updatePreset(){
+  const btnRec=document.getElementById('presetRec');
+  const btnBase=document.getElementById('presetBase');
+  const badge=document.getElementById('ridgeBadge');
+  btnRec.classList.toggle('preset-active',ridgeMode==='rec');
+  btnRec.setAttribute('aria-pressed',ridgeMode==='rec');
+  btnBase.classList.toggle('preset-active',ridgeMode==='base');
+  btnBase.setAttribute('aria-pressed',ridgeMode==='base');
+  badge.style.display=ridgeMode==='manual'?'':'none';
 }
 
 function applyAutoRidge(){
@@ -515,7 +519,8 @@ function applyAutoRidge(){
   const EL=+document.getElementById('eL').value;
   const ER=+document.getElementById('eR').value;
   const total=H+EL+ER;
-  const rec=Math.round(total*0.83);
+  const ratio=ridgeMode==='base'?0.866:0.83;
+  const rec=Math.round(total*ratio);
   const s=document.getElementById('rLen');
   s.max=Math.min(420,total-5);
   s.value=Math.min(rec,total-5);
@@ -527,7 +532,7 @@ function run(){
   const EL =+document.getElementById('eL').value;
   const ER =+document.getElementById('eR').value;
   const LH =+document.getElementById('legH').value;
-  if(!ridgeManual) applyAutoRidge();
+  if(ridgeMode!=='manual') applyAutoRidge();
   const R=+document.getElementById('rLen').value;
   const total=H+EL+ER;
   const rec=Math.round(total*0.83);
@@ -537,6 +542,7 @@ function run(){
   document.getElementById('eRV').textContent=ER+' cm';
   document.getElementById('rLenV').textContent=R+' cm';
   document.getElementById('legHV').textContent=LH+' cm';
+
   document.getElementById('rec83').textContent=rec+' cm';
   document.getElementById('legHint').textContent=LH===0?'기준 높이 (머리쪽과 동일)':`다리쪽 앵커 +${LH}cm → 해먹 기울어짐`;
 
@@ -589,15 +595,8 @@ function run(){
   else{cls='status-warn';msg=`⚠ 평균 ${avg.toFixed(1)}° — 처짐이 큽니다. 릿지라인을 늘리거나 연장선을 짧게 해보세요.`;}
   st.className='status-bar '+cls; st.textContent=msg;
 
-  const HPERSON=+document.getElementById('hPerson').value;
   const tOL_p=EL/total, tOR_p=(EL+H)/total;
-  let tHead;
-  if(HPERSON>0 && HPERSON<H){
-    const headOffset=Math.max(0,(H-HPERSON)/2);
-    tHead=tOL_p+headOffset/total;
-  } else {
-    tHead=tOL_p+(tOR_p-tOL_p)/5;
-  }
+  const tHead=tOL_p+(tOR_p-tOL_p)/5;
 
   draw(aHeadDeg,aLegDeg,tiltDeg,thetaChordRad,
        total,H,EL,ER,R,LH,R_head_ratio,R_leg_ratio,comRatio,tiltRad,
@@ -803,10 +802,6 @@ function draw(aHeadDeg,aLegDeg,tiltDeg,thetaChord,
 
 document.getElementById('rLen').addEventListener('input',run);
 ['hLen','eL','eR','legH'].forEach(id=>document.getElementById(id).addEventListener('input',run));
-document.getElementById('hPerson').addEventListener('input',function(){
-  document.getElementById('hPersonV').textContent=this.value+' cm';
-  run();
-});
 run();
 </script>
 </body>
